@@ -1,0 +1,136 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 36 33% 97%;
+    --foreground: 220 18% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 18% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 18% 12%;
+
+    --primary: 220 18% 14%;
+    --primary-foreground: 36 33% 97%;
+
+    --secondary: 220 14% 94%;
+    --secondary-foreground: 220 18% 14%;
+
+    --muted: 220 14% 94%;
+    --muted-foreground: 220 8% 45%;
+
+    --accent: 28 80% 56%;
+    --accent-foreground: 220 18% 14%;
+
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 89%;
+    --input: 220 13% 89%;
+    --ring: 220 18% 14%;
+
+    --radius: 0.875rem;
+  }
+
+  .dark {
+    --background: 220 18% 7%;
+    --foreground: 36 33% 96%;
+
+    --card: 220 18% 9%;
+    --card-foreground: 36 33% 96%;
+
+    --popover: 220 18% 9%;
+    --popover-foreground: 36 33% 96%;
+
+    --primary: 36 33% 96%;
+    --primary-foreground: 220 18% 9%;
+
+    --secondary: 220 14% 14%;
+    --secondary-foreground: 36 33% 96%;
+
+    --muted: 220 14% 14%;
+    --muted-foreground: 220 9% 64%;
+
+    --accent: 28 80% 60%;
+    --accent-foreground: 220 18% 9%;
+
+    --destructive: 0 65% 55%;
+    --destructive-foreground: 36 33% 96%;
+
+    --border: 220 14% 18%;
+    --input: 220 14% 18%;
+    --ring: 36 33% 96%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html,
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "ss01", "cv11";
+  }
+  body {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: hsl(var(--accent) / 0.3);
+  }
+}
+
+@layer components {
+  .glass {
+    @apply bg-card/70 backdrop-blur-xl border border-border/60 shadow-[0_1px_0_0_hsl(var(--border)/0.7),0_8px_30px_-12px_rgba(0,0,0,0.08)];
+  }
+  .ring-soft {
+    box-shadow: 0 0 0 1px hsl(var(--border));
+  }
+  .gradient-mesh {
+    background:
+      radial-gradient(at 20% 10%, hsl(28 80% 60% / 0.10) 0px, transparent 50%),
+      radial-gradient(at 80% 0%, hsl(220 80% 60% / 0.08) 0px, transparent 55%),
+      radial-gradient(at 50% 90%, hsl(150 60% 55% / 0.06) 0px, transparent 50%);
+  }
+  .text-display {
+    @apply font-display tracking-tight;
+  }
+  .text-grotesk {
+    @apply font-grotesk tracking-tight;
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
+  .skeleton {
+    @apply relative overflow-hidden bg-muted/60 rounded-md;
+  }
+  .skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      hsl(var(--muted-foreground) / 0.1),
+      transparent
+    );
+    animation: shimmer 2s infinite;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+}
+
+@layer utilities {
+  .no-tap-highlight {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
