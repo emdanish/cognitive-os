@@ -9,9 +9,14 @@ import { SummaryCard } from "@/components/summary-card";
 import type { SummaryRow } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-export function LibraryClient({ summaries }: { summaries: SummaryRow[] }) {
+export function LibraryClient({ summaries: initialSummaries }: { summaries: SummaryRow[] }) {
+  const [summaries, setSummaries] = useState(initialSummaries);
   const [query, setQuery] = useState("");
   const [activeTopic, setActiveTopic] = useState<string | null>(null);
+
+  const handleDelete = (id: string) => {
+    setSummaries((prev) => prev.filter((s) => s.id !== id));
+  };
 
   const allTopics = useMemo(() => {
     const set = new Set<string>();
@@ -115,7 +120,7 @@ export function LibraryClient({ summaries }: { summaries: SummaryRow[] }) {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((s) => (
-            <SummaryCard key={s.id} summary={s} />
+            <SummaryCard key={s.id} summary={s} onDelete={handleDelete} />
           ))}
         </div>
       )}

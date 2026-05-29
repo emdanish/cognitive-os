@@ -170,6 +170,88 @@ begin
 end $$;
 
 -- =====================================================================
+-- 9. feed_search_state  -  keeps track of search query tokens/pages
+-- =====================================================================
+create table if not exists public.feed_search_state (
+    id uuid primary key default gen_random_uuid(),
+    query text not null,
+    order_kind text not null check (order_kind in ('relevance','viewCount','date')),
+    page_token text,
+    last_used_at timestamptz not null default now(),
+    exhausted_at timestamptz,
+    yield_count integer not null default 0,
+    unique (query, order_kind)
+);
+create index if not exists feed_search_state_last_used_idx on public.feed_search_state (last_used_at desc);
+
+alter table public.feed_search_state enable row level security;
+do $$ begin
+    drop policy if exists "personal_all" on public.feed_search_state;
+    create policy "personal_all" on public.feed_search_state for all using (true) with check (true);
+end $$;
+
+-- =====================================================================
+-- 10. generated_feeds unique constraint for upsert support
+-- =====================================================================
+-- Clean up duplicate source_ids in generated_feeds, keeping the latest one
+delete from public.generated_feeds a
+using public.generated_feeds b
+where a.source_id = b.source_id and a.created_at < b.created_at;
+
+-- Ensure source_id is unique in generated_feeds to support upsert/onConflict
+alter table public.generated_feeds drop constraint if exists generated_feeds_source_id_unique;
+alter table public.generated_feeds add constraint generated_feeds_source_id_unique unique (source_id);
+
+-- =====================================================================
+-- 11. creator_state  -  caches resolved YouTube handle metadata
+-- =====================================================================
+create table if not exists public.creator_state (
+    handle              text primary key,
+    name                text not null,
+    channel_id          text,
+    uploads_playlist_id text,
+    resolved_at         timestamptz,
+    resolution_error    text,
+    last_used_at        timestamptz default now()
+);
+create index if not exists creator_state_last_used_idx on public.creator_state (last_used_at desc);
+
+alter table public.creator_state enable row level security;
+do $$
+begin
+    drop policy if exists "personal_all" on public.creator_state;
+    create policy "personal_all" on public.creator_state for all using (true) with check (true);
+end $$;
+
+-- =====================================================================
+-- 12. creator_state schema updates for top video caching
+-- =====================================================================
+alter table public.creator_state
+    add column if not exists top_video_ids text[],
+    add column if not exists top_video_ids_refreshed_at timestamptz;
+
+-- =====================================================================
 -- Done. You can now insert / select from any of these tables using the
 -- anon key. The Next.js server uses the service role key for writes.
 -- =====================================================================
+
+-- =====================================================================
+-- 13. One-time cleanup of poisoned transient failures in creator_state
+-- (safe to re-run; only clears rows with transient error reasons)
+-- =====================================================================
+update public.creator_state
+set resolution_error = null, last_used_at = '1970-01-01T00:00:00Z'
+where resolution_error in (
+  'quota_exhausted',
+  'http_403',
+  'http_429',
+  'http_500',
+  'http_502',
+  'http_503',
+  'http_504',
+  'fetch_failed',
+  'piped_fetch_failed'
+)
+and channel_id is null;
+
+

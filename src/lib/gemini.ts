@@ -88,7 +88,7 @@ const ALLOWED_TOPICS = new Set([
   "pricing",
   "negotiation",
   "mindset",
-  "islamic-self-improvement",
+  "islamic-motivation",
   "focus",
   "time-management",
   "learning",
@@ -96,6 +96,14 @@ const ALLOWED_TOPICS = new Set([
   "content",
   "creator-economy",
   "life-design",
+  "entrepreneurship",
+  "psychology",
+  "dark-psychology",
+  "philosophy",
+  "book-summaries",
+  "self-mastery",
+  "motivation",
+  "free-resources",
 ]);
 
 function normalizeInsight(i: Partial<StructuredInsight>): StructuredInsight {

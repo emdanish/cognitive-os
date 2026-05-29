@@ -32,10 +32,11 @@ interface Props {
 }
 
 const SWIPE_THRESHOLD = 120;
-const LOW_THRESHOLD = 4;
+const LOW_THRESHOLD = 10;
 
 export function SwipeableFeed({ items, onLow, onExhausted, loadingMore }: Props) {
   const [swipedIds, setSwipedIds] = useState<Set<string>>(new Set());
+  const [undoStack, setUndoStack] = useState<Array<{ swipeId: string; item: FeedItemRow; direction: string }>>([]);
   const lowFiredFor = useRef<string>("");
 
   const stack = useMemo(
@@ -55,22 +56,23 @@ export function SwipeableFeed({ items, onLow, onExhausted, loadingMore }: Props)
       onLow &&
       stack.length > 0 &&
       stack.length <= LOW_THRESHOLD &&
-      lowFiredFor.current !== stack[0]?.id
+      lowFiredFor.current !== stack[0]?.id &&
+      !loadingMore
     ) {
       lowFiredFor.current = stack[0]?.id || "";
       onLow();
     }
-    if (onExhausted && stack.length === 0 && items.length > 0) {
+    if (onExhausted && stack.length === 0 && items.length > 0 && !loadingMore) {
       onExhausted();
     }
-  }, [stack, onLow, onExhausted, items.length]);
+  }, [stack, onLow, onExhausted, items.length, loadingMore]);
 
   async function recordSwipe(
     item: FeedItemRow,
     direction: "left" | "right" | "super",
-  ) {
+  ): Promise<{ id: string | null; unconsumedCount: number } | null> {
     try {
-      await fetch("/api/swipe", {
+      const res = await fetch("/api/swipe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -80,28 +82,91 @@ export function SwipeableFeed({ items, onLow, onExhausted, loadingMore }: Props)
           topics: item.topics ?? [],
         }),
       });
+      const json = (await res.json()) as {
+        ok?: boolean;
+        id?: string | null;
+        unconsumed_count?: number;
+        error?: string;
+      };
+      if (!res.ok) throw new Error(json.error || "Swipe save failed");
+      return { id: json.id ?? null, unconsumedCount: json.unconsumed_count ?? 0 };
     } catch {
-      /* fail silently */
+      return null;
     }
   }
 
-  function handleSwipe(item: FeedItemRow, direction: "left" | "right" | "super") {
+  const handleUndo = async (entry: { swipeId: string; item: FeedItemRow; direction: string }) => {
+    try {
+      const res = await fetch(`/api/swipe?id=${entry.swipeId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const json = (await res.json()) as { error?: string };
+        throw new Error(json.error || "Could not undo swipe");
+      }
+      setSwipedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(entry.item.id);
+        return next;
+      });
+      setUndoStack((prev) => prev.filter((x) => x.swipeId !== entry.swipeId));
+      toast.success("Swipe undone");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to undo swipe");
+    }
+  };
+
+  async function handleSwipe(item: FeedItemRow, direction: "left" | "right" | "super") {
+    // 1. Optimistic UI update
     setSwipedIds((prev) => {
       const next = new Set(prev);
       next.add(item.id);
       return next;
     });
-    recordSwipe(item, direction);
 
-    if (direction === "right") {
-      toast.success("Added to Watchlist", {
-        description: "Find it on your dashboard.",
-      });
+    // 2. Persist swipe
+    const swipeRes = await recordSwipe(item, direction);
+
+    // 3. Add to undo stack and notify
+    if (swipeRes && swipeRes.id) {
+      const swipeId = swipeRes.id;
+      const unconsumedCount = swipeRes.unconsumedCount;
+
+      if (unconsumedCount < 15 && onLow) {
+        onLow();
+      }
+
+      const newEntry = { swipeId, item, direction };
+      setUndoStack((prev) => [newEntry, ...prev].slice(0, 3));
+
+      if (direction === "right") {
+        toast.success("Added to Watchlist", {
+          description: "Find it on your dashboard.",
+          action: {
+            label: "Undo",
+            onClick: () => handleUndo(newEntry),
+          },
+        });
+      } else if (direction === "super") {
+        toast.success("Super-saved", {
+          description: "Heavily weighted in your feed + summarizing now…",
+          action: {
+            label: "Undo",
+            onClick: () => {
+              handleUndo(newEntry);
+              toast.info("Undone — a summary may already have started.");
+            },
+          },
+        });
+      } else if (direction === "left") {
+        toast.info("Skipped", {
+          action: {
+            label: "Undo",
+            onClick: () => handleUndo(newEntry),
+          },
+        });
+      }
     }
+
     if (direction === "super") {
-      toast.success("Super-saved", {
-        description: "Heavily weighted in your feed + summarizing now…",
-      });
       // Fire-and-forget summarize
       fetch("/api/summarize", {
         method: "POST",

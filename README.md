@@ -298,6 +298,15 @@ For a single user this is more than enough.
 
 ---
 
+## Curated feed
+
+The feed is driven by the native YouTube Data API v3 (channels, playlistItems, and videos endpoints). Creator monitoring uses `playlistItems.list` (1 unit each, ~22/day). Topic search uses `search.list` (100 units each, ~800/day). Total daily quota usage: ~10% of the 10,000-unit free tier per session.
+Creator handles can be updated in `src/lib/sources.ts` if a creator changes their handle, and resolution failures show up in `/api/feed/diagnostics`.
+
+The feed enforces a hard 1,000,000+ view floor and a 180-second minimum duration on every card. Shorts are blocked at three layers (URL pattern, duration, search parameter).
+
+---
+
 ## Daily routine (suggested)
 
 1. Open `/feed` — swipe through 10–20 cards. Right-swipe what's worth your time, super-save the gold.

@@ -3,6 +3,7 @@ import { getServerSupabase } from "@/lib/supabase";
 import { decodeHtmlEntities } from "@/lib/utils";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 interface FeedRow {
   title?: string | null;

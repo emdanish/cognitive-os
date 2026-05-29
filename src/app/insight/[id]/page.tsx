@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, Download, ExternalLink } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { InsightDisplay } from "@/components/insight-display";
 import { ReflectionPrompt } from "@/components/reflection-prompt";
+import { InsightActions } from "@/components/insight-actions";
 import { getServerSupabase } from "@/lib/supabase";
 import type { ReflectionRow, SummaryRow } from "@/lib/types";
 
@@ -81,20 +81,7 @@ export default async function InsightPage({ params }: { params: Promise<{ id: st
               ))}
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {summary.source_url && (
-              <Button asChild variant="outline" size="sm">
-                <a href={summary.source_url} target="_blank" rel="noreferrer">
-                  <ExternalLink className="h-4 w-4" /> Source
-                </a>
-              </Button>
-            )}
-            <Button asChild size="sm">
-              <a href={`/api/pdf/${summary.id}`} target="_blank" rel="noreferrer">
-                <Download className="h-4 w-4" /> Export PDF
-              </a>
-            </Button>
-          </div>
+          <InsightActions summaryId={summary.id} sourceUrl={summary.source_url} />
         </div>
       </header>
 

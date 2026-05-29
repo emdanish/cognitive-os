@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -22,12 +22,30 @@ import { ReflectionPrompt } from "@/components/reflection-prompt";
 import type { SummaryRow } from "@/lib/types";
 import { extractYouTubeId } from "@/lib/utils";
 
+const STAGES = [
+  "Watching the video…",
+  "Catching the key ideas…",
+  "Drafting frameworks…",
+  "Polishing the brief…",
+  "Almost there…",
+];
+
 export function SummarizeClient() {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SummaryRow | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [stage, setStage] = useState<string>("");
+
+  useEffect(() => {
+    if (!loading) return;
+    let idx = 0;
+    const interval = setInterval(() => {
+      idx = Math.min(idx + 1, STAGES.length - 1);
+      setStage(STAGES[idx]);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [loading]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
